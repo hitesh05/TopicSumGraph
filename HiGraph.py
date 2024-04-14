@@ -58,8 +58,8 @@ class TopicSumGraph(nn.Module):
         # pass through ntm
         snode_id = graph.filter_nodes(lambda nodes: nodes.data["unit"] == 1)
         xbow_reconstructed, theta = self.ntm.forward(graph,snode_id)
-        topic_features = self.ntm.get_ti() # [wnode, dt]
-        
+        topic_feature = self.ntm.get_ti() # [wnode, dt]
+        topic_features = topic_feature.repeat(self._hps.batch_size,1)
         # pass through bert
         
         input_ids = graph.nodes[snode_id].data['bert_input_ids']
@@ -80,7 +80,8 @@ class TopicSumGraph(nn.Module):
             word_state = self.sent2word(graph, word_state, sent_state)
             # word -> sent
             sent_state = self.word2sent(graph, word_state, sent_state)
-
+        # TOPIC_staTE [SNODE, NUM_TOPICS]
+        # WORD sTATE [BATCH*NUM_TOPICS , DT ]
         topic_state = torch.matmul(theta, word_state)
         final_state = torch.cat((topic_state, sent_state), axis=-1)
         result = self.wh(final_state)

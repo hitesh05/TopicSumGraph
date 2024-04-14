@@ -126,17 +126,14 @@ class ExampleSet(torch.utils.data.Dataset):
         vocab_len = self.vocab.size()
         num_sents = input_pad.shape[0]
         bow_rep = np.zeros((num_sents, vocab_len))
-        
         for i, sent in enumerate(input_pad):
             for word in sent:
                 if word not in self.filterids:
-                    bow_rep[i][word]+=1
-        # row_norms = np.linalg.norm(bow_rep, axis=1, keepdims=True)
-        # return bow_rep/row_norms
+                    bow_rep[i][int(word)]+=1
         return bow_rep
 
     def get_bert_tokenizer(self):
-        inputs = self.tokenizer(self.text, padding=True, truncation=True, return_tensors='pt')
+        inputs = self.tokenizer(self.text, padding='max_length', truncation=True, return_tensors='pt', max_length=100)
         return inputs
     
     def AddTopicNode(self, G, num_topics):
@@ -170,29 +167,20 @@ class ExampleSet(torch.utils.data.Dataset):
         G.nodes[sentids].data['label'] = labels[:len(sentids)]
         for i in range(N): 
             G.nodes[i+num_topics].data['id'] = torch.LongTensor([i])
-        # print((G.ndata['dtype'].shape), N, num_topics)
-        # print("#########################################################")
         for i in range(num_topics):
             for j in range(N):
-                G.add_edges([i], [j+num_topics], data={'tfidfembed': torch.tensor([1.0]), 'dtype': torch.tensor([1])})
-                G.add_edges([j+num_topics], [i], data={'tfidfembed': torch.tensor([1.0]), 'dtype': torch.tensor([0])})
+                G.add_edges([i], [j+num_topics], data={'tfidfembed': torch.tensor([1.0]), 'dtype': torch.tensor([1.0])})
+                G.add_edges([j+num_topics], [i], data={'tfidfembed': torch.tensor([1.0]), 'dtype': torch.tensor([0.0])})
         
-        return G
-    
-    def checker(self, index):
-        item = self.get_example(index)
-        input_pad = np.array(item.enc_sent_input_pad[:self.doc_max_timesteps])
-        bow_rep = torch.tensor(self.get_bow_rep(input_pad), dtype=torch.float32)
-        labels = torch.tensor(item.labels, dtype=torch.int32)
-        inputs = self.get_bert_tokenizer()
-        G = self.create_graph(input_pad, bow_rep, inputs, labels, self.num_topics)
         return G
         
     def __getitem__(self, index):
         item = self.get_example(index)
-        input_pad = np.array(item.enc_sent_input_pad[:self.doc_max_timesteps])
+        sents = np.array(item.enc_sent_input_pad)
+        labels = item.labels
+        input_pad = np.array(item.enc_sent_input_pad)
         bow_rep = torch.tensor(self.get_bow_rep(input_pad), dtype=torch.float32)
-        labels = torch.tensor(item.labels, dtype=torch.int32)
+        labels = torch.tensor(labels, dtype=torch.int32)
         inputs = self.get_bert_tokenizer()
         G = self.create_graph(input_pad, bow_rep, inputs, labels, self.num_topics)
         return G, index

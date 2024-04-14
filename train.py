@@ -86,7 +86,8 @@ def run_training(model, train_loader, valid_loader, valset, hps, train_dir):
         for i, (G, index) in enumerate(train_loader):
             iter_start_time = time.time()
             # if i > 10:
-            #     break
+            #   
+            # break
             model.train()
 
             if hps.cuda:
