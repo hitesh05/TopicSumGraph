@@ -178,7 +178,19 @@ class ExampleSet(torch.utils.data.Dataset):
         item = self.get_example(index)
         sents = np.array(item.enc_sent_input_pad)
         labels = item.labels
-        input_pad = np.array(item.enc_sent_input_pad)
+        if sents.shape[0] < self.doc_max_timesteps:
+            num_pad_sents = self.doc_max_timesteps - len(sents)
+            pad_arr = np.zeros((num_pad_sents, len(sents[0])))
+            input_pad = np.concatenate((sents, pad_arr), axis=0) 
+            pad_l = np.zeros(num_pad_sents)
+            labels = np.concatenate((labels, pad_l), axis=0)  
+            for _ in range(num_pad_sents):
+                self.text.append("")  
+        else:
+            input_pad = sents[:self.doc_max_timesteps]
+            labels = labels[:self.doc_max_timesteps]
+            self.text = self.text[:self.doc_max_timesteps]
+        # input_pad = np.array(item.enc_sent_input_pad)
         bow_rep = torch.tensor(self.get_bow_rep(input_pad), dtype=torch.float32)
         labels = torch.tensor(labels, dtype=torch.int32)
         inputs = self.get_bert_tokenizer()

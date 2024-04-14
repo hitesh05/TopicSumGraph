@@ -82,7 +82,10 @@ class TopicSumGraph(nn.Module):
             sent_state = self.word2sent(graph, word_state, sent_state)
         # TOPIC_staTE [SNODE, NUM_TOPICS]
         # WORD sTATE [BATCH*NUM_TOPICS , DT ]
-        topic_state = torch.matmul(theta, word_state)
+        theta = theta.reshape(self._hps.batch_size, 50 , -1 )
+        word_state  = word_state.reshape(self._hps.batch_size, self._hps.num_topics , -1 )
+        topic_state = torch.matmul(theta, word_state).reshape(-1, self._hps.dt)
+        
         final_state = torch.cat((topic_state, sent_state), axis=-1)
         result = self.wh(final_state)
 

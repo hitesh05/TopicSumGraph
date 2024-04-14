@@ -106,7 +106,8 @@ def run_training(model, train_loader, valid_loader, valset, hps, train_dir):
             G.nodes[snode_id].data["loss"] = criterion(outputs, label).unsqueeze(-1)  # [n_nodes, 1]
             loss = dgl.sum_nodes(G, "loss")  # [batch_size, 1]
             loss = loss.mean()
-            loss += loss2.mean()
+            loss2 = loss2.mean()
+            loss_total = loss+loss2
             
             if not (np.isfinite(loss.data.cpu())).numpy():
                 logger.error("train Loss is not finite. Stopping.")
@@ -118,7 +119,7 @@ def run_training(model, train_loader, valid_loader, valset, hps, train_dir):
                 raise Exception("train Loss is not finite. Stopping.")
 
             optimizer.zero_grad()
-            loss.backward()
+            loss_total.backward()
             if hps.grad_clip:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), hps.max_grad_norm)
 
