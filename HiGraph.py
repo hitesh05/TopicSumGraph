@@ -18,11 +18,12 @@ class TopicSumGraph(nn.Module):
         self._n_iter = hps.n_iter
         self.embed_size = hps.word_emb_dim
         self.ntm = NTM_Module(dt=hps.dt, K=hps.num_topics, V=vocab_size)
-                
+        
         # bert init
         self.bertmodel = BertModel.from_pretrained('bert-base-uncased')
+        # self._TFembed = nn.Embedding(10, hps.feat_embed_size)   # box=10
         
-        self.n_feature_proj = nn.Linear(self.embed_size, hps.dt, bias=False) # bert embed dim = 768
+        self.n_feature_proj = nn.Linear(self.embed_size, hps.hidden_size, bias=False) # bert embed dim = 768
         
         # word -> sent
         self.word2sent = WSWGAT(in_dim=hps.dt,
@@ -49,7 +50,7 @@ class TopicSumGraph(nn.Module):
         # node classification
         self.n_feature = hps.dt
         self.wh = nn.Linear(2*self.n_feature, 2) # classifier
-        
+        # self.TFEmbed = nn.Linear(1, hps.feat_embed_size)
         
     def forward(self, graph):
         
@@ -75,12 +76,13 @@ class TopicSumGraph(nn.Module):
         
         for i in range(self._n_iter): # n_iter = 1 generally
             # sent -> word
+            
             word_state = self.sent2word(graph, word_state, sent_state)
             # word -> sent
             sent_state = self.word2sent(graph, word_state, sent_state)
 
         topic_state = torch.matmul(theta, word_state)
-        final_state = torch.cat(topic_state, sent_state, axis=-1)
+        final_state = torch.cat((topic_state, sent_state), axis=-1)
         result = self.wh(final_state)
 
         return xbow_reconstructed,result

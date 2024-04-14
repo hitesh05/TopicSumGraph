@@ -71,7 +71,7 @@ def run_training(model, train_loader, valid_loader, valset, hps, train_dir):
 
 
     criterion = torch.nn.CrossEntropyLoss(reduction='none')
-    criterion2 = torch.nn.KLDivLoss(reduction='none')
+    criterion2 = torch.nn.KLDivLoss(reduction='batchmean')
 
     best_train_loss = None
     best_loss = None
@@ -95,11 +95,13 @@ def run_training(model, train_loader, valid_loader, valset, hps, train_dir):
             xbows, outputs = model.forward(G)  # [n_snodes, 2]
             xbow_gl  = G.ndata["bow"][G.filter_nodes(lambda nodes: nodes.data["unit"] == 1)].to(graph_device)
             xbows = xbows.to(graph_device)
-            loss2 = criterion2(outputs, xbows)
+            xbows = torch.softmax(xbows,dim=1)
+            
+            loss2 = criterion2(torch.log(xbows), xbow_gl)
             snode_id = G.filter_nodes(lambda nodes: nodes.data["dtype"] == 1)
-            print(G.ndata["label"].shape)
-            label = G.ndata["label"][snode_id].sum(-1)  # [n_nodes]
-            print(label.shape)
+            # print(G.ndata["label"].shape)
+            label = G.ndata["label"][snode_id].to(graph_device).long()  # [n_nodes]
+            # print(label.shape)
             G.nodes[snode_id].data["loss"] = criterion(outputs, label).unsqueeze(-1)  # [n_nodes, 1]
             loss = dgl.sum_nodes(G, "loss")  # [batch_size, 1]
             loss = loss.mean()
@@ -287,7 +289,7 @@ def main():
     parser.add_argument('--use_orthnormal_init', action='store_true', default=True,help='use orthnormal init for lstm [default: True]')
     parser.add_argument('--sent_max_len', type=int, default=100,help='max length of sentences (max source text sentence tokens)')
     parser.add_argument('--doc_max_timesteps', type=int, default=50,help='max length of documents (max timesteps of documents)')
-    parser.add_argument('--dt', type=int, default=256, help='topic embedding dimension size')
+    parser.add_argument('--dt', type=int, default=300, help='topic embedding dimension size')
     parser.add_argument('--num_topics', type=int, default=10, help='number of topics')
 
     # Training

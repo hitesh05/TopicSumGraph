@@ -86,12 +86,13 @@ class WSGATLayer(nn.Module):
         self.feat_fc = nn.Linear(1, out_dim, bias=False)
         # self.attn_fc = nn.Linear(3 * out_dim, 1, bias=False)
         self.attn_fc = nn.Linear(2 * out_dim, 1, bias=False)
-
+        
 
     def edge_attention(self, edges):
         # dfeat = self.feat_fc(edges.data["tfidfembed"])                  # [edge_num, out_dim]
         # z2 = torch.cat([edges.src['z'], edges.dst['z'], dfeat], dim=1)  # [edge_num, 3 * out_dim]
         z2 = torch.cat([edges.src['z'], edges.dst['z']], dim=1)  # [edge_num, 3 * out_dim]
+        
         wa = F.leaky_relu(self.attn_fc(z2))  # [edge_num, 1]
         return {'e': wa}
 
@@ -125,15 +126,15 @@ class SWGATLayer(nn.Module):
     def __init__(self, in_dim, out_dim, feat_embed_size):
         super().__init__()
         self.fc = nn.Linear(in_dim, out_dim, bias=False)
-
         self.feat_fc = nn.Linear(1, out_dim)
-        self.attn_fc = nn.Linear(3 * out_dim, 1, bias=False)
+        # self.attn_fc = nn.Linear(3 * out_dim, 1, bias=False)
+        self.attn_fc = nn.Linear(2 * out_dim, 1, bias=False)
+
 
     def edge_attention(self, edges):
         # dfeat = self.feat_fc(edges.data["tfidfembed"])  # [edge_num, out_dim]
         # z2 = torch.cat([edges.src['z'], edges.dst['z'], dfeat], dim=1)  # [edge_num, 3 * out_dim]
-        z2 = torch.cat([edges.src['z'], edges.dst['z']], dim=1)  # [edge_num, 3 * out_dim]
-        
+        z2 = torch.cat([edges.src['z'], edges.dst['z']], dim=1)  # [edge_num, 2 * out_dim]
         wa = F.leaky_relu(self.attn_fc(z2))  # [edge_num, 1]
         return {'e': wa}
 
