@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from rouge import Rouge
 
-from HiGraph import TopicSumGraph
+from TopicGraph import TopicSumGraph
 from Tester import SLTester
 
 from module.dataloader import ExampleSet, graph_collate_fn
